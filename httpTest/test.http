@@ -1,0 +1,37 @@
+### 신규
+POST http://localhost:8080/r2/customers
+Content-Type: application/json
+
+	{
+		"firstName": "Antonio",
+		"lastName": "Carlos"
+	}
+
+### 조회
+GET http://localhost:8080/r2/customers/1
+
+### 갱신
+PUT http://localhost:8080/r2/customers
+Content-Type: application/json
+
+	{
+		"id": 1,
+		"firstName": "update Antonio",
+		"lastName": "update Carlos"
+	}
+
+### 삭제
+DELETE http://localhost:8080/r2/customers
+Content-Type: application/json
+
+	{
+		"id": 1,
+		"firstName": "update Antonio",
+		"lastName": "update Carlos"
+	}	
+
+### 전체조회
+GET http://localhost:8080/r2/customers
+
+### 전체조회
+GET http://localhost:8080/mb/customers

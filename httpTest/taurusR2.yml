@@ -1,0 +1,30 @@
+---
+execution:
+# 시나리오별로 프로파일을 다르게 설정할 수 있습니다.
+- scenario: r2
+  concurrency: 2000
+  #동시 사용자 수 수치까지 증가하는데 소요될 시간
+  #ramp-up: 1m
+  ramp-up: 10s
+  #hold-for: 1m30s
+  # 동시 사용자 수 유지 시간
+  hold-for: 60s
+
+scenarios:
+  # webflux controller
+  r2:
+    timeout: 5s
+    default-address: http://localhost:8080
+    #해당 시나리오 전체에 적용될 헤더
+    headers:
+      User-Agent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+      Accept-Encoding: 'gzip, deflate, sdch'
+    requests:
+      - url: '/r2/customers'
+
+#blazemeter에 사용자 등록하였다면 결과를 blazemeter 사이트에서 볼 수 있습니다. token 값을 본인의 정보로 변경하고 아래 주석을 해제하세요
+#modules:
+#  blazemeter:
+#    token: {ip}:{pw}
+
+#blazemeter에 비회원으로도 조회 가능합니다. 실행시 '-report' 옵션을 추가해주세요
