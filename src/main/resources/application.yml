@@ -13,9 +13,15 @@ spring:
   h2:
     console:
       enabled: true
+  r2dbc:
+    pool:
+      enabled: true
+      initialSize: 5
+      maxSize: 30
 
 logging:
   level: 
     jdbc.sqlonly: OFF
     org.springframework.web: OFF
-    com.zaxxer.hikari: TRACE
+    com.zaxxer.hikari: OFF
+    io.r2dbc.pool: OFF

@@ -10,7 +10,6 @@ import com.example.accessingdatar2dbc.mapper.MybatisMapper;
 
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
-import org.mybatis.spring.annotation.MapperScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,13 +44,13 @@ public class AccessingDataR2dbcApplication {
     CustomerRepository repository;
 
     @Autowired
-    MybatisMapper mybatisMapper;    
+    MybatisMapper mybatisMapper;
 
     public static void main(String[] args) {
         SpringApplication.run(AccessingDataR2dbcApplication.class, args);
     }
 
-    @Bean
+    @Bean // 구동시 테이블 생성하려먼 주석해제
     ConnectionFactoryInitializer initializer(ConnectionFactory connectionFactory) {
 
         ConnectionFactoryInitializer initializer = new ConnectionFactoryInitializer();
@@ -61,24 +60,32 @@ public class AccessingDataR2dbcApplication {
         return initializer;
     }
 
-	@Bean(name = "mainDataSource")
-	@ConfigurationProperties(prefix = "spring.datasource")
-	public DataSource mainDataSource() {
-		DataSource mainDataSource = DataSourceBuilder.create().build();
-		log.debug("mainDataSource={}", mainDataSource);
-		return mainDataSource;
+    @Bean(name = "mainDataSource")
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public DataSource mainDataSource() {
+        DataSource mainDataSource = DataSourceBuilder.create().build();
+        log.debug("mainDataSource={}", mainDataSource);
+        return mainDataSource;
     }
-    
+
     @Bean
     public SqlSessionFactory sqlSessionFactory() throws Exception {
         SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
         sessionFactory.setDataSource(mainDataSource());
         return sessionFactory.getObject();
     }
-        
+
     @GetMapping("/mb/customers")
     public List<Customer> mbGetCustomers() {
-        return mybatisMapper.getList();
+        List<Customer> customers = mybatisMapper.getList();
+        for (Customer customer : customers) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                //e.printStackTrace();
+            }
+        }
+        return customers;
     }
 
     @PostMapping("/r2/customers")
@@ -104,7 +111,7 @@ public class AccessingDataR2dbcApplication {
 
     @GetMapping("/r2/customers")
     public Flux<Customer> r2GetCustomers() {
-        return repository.findAll();
+        return repository.findAll().delayElements(Duration.ofMillis(10));
     }    
 
     @Bean //구동시 데이터를 넣으려면 주석 해제

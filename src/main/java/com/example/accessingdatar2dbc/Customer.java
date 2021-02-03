@@ -2,8 +2,6 @@ package com.example.accessingdatar2dbc;
 
 import org.springframework.data.annotation.Id;
 
-import lombok.Data;
-
 public class Customer {
 
     @Id
