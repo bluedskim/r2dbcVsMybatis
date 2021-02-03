@@ -34,32 +34,33 @@ import org.springframework.web.bind.annotation.RestController;
 import io.r2dbc.spi.ConnectionFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @RestController
 @SpringBootApplication
 public class AccessingDataR2dbcApplication {
 
-    private static final Logger log = LoggerFactory.getLogger(AccessingDataR2dbcApplication.class);
+	private static final Logger log = LoggerFactory.getLogger(AccessingDataR2dbcApplication.class);
 
-    @Autowired
-    CustomerRepository repository;
+	@Autowired
+	CustomerRepository repository;
 
-    @Autowired
-    MybatisMapper mybatisMapper;    
+	@Autowired
+	MybatisMapper mybatisMapper;
 
-    public static void main(String[] args) {
-        SpringApplication.run(AccessingDataR2dbcApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(AccessingDataR2dbcApplication.class, args);
+	}
 
-    @Bean
-    ConnectionFactoryInitializer initializer(ConnectionFactory connectionFactory) {
+	@Bean
+	ConnectionFactoryInitializer initializer(ConnectionFactory connectionFactory) {
 
-        ConnectionFactoryInitializer initializer = new ConnectionFactoryInitializer();
-        initializer.setConnectionFactory(connectionFactory);
-        initializer.setDatabasePopulator(new ResourceDatabasePopulator(new ClassPathResource("schema.sql")));
+		ConnectionFactoryInitializer initializer = new ConnectionFactoryInitializer();
+		initializer.setConnectionFactory(connectionFactory);
+		initializer.setDatabasePopulator(new ResourceDatabasePopulator(new ClassPathResource("schema.sql")));
 
-        return initializer;
-    }
+		return initializer;
+	}
 
 	@Bean(name = "mainDataSource")
 	@ConfigurationProperties(prefix = "spring.datasource")
@@ -67,68 +68,70 @@ public class AccessingDataR2dbcApplication {
 		DataSource mainDataSource = DataSourceBuilder.create().build();
 		log.debug("mainDataSource={}", mainDataSource);
 		return mainDataSource;
-    }
-    
-    @Bean
-    public SqlSessionFactory sqlSessionFactory() throws Exception {
-        SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
-        sessionFactory.setDataSource(mainDataSource());
-        return sessionFactory.getObject();
-    }
-        
-    @GetMapping("/mb/customers")
-    public List<Customer> mbGetCustomers() {
-        return mybatisMapper.getList();
-    }
+	}
 
-    @PostMapping("/r2/customers")
-    public Mono<Customer> r2CreateCustomer(@RequestBody Customer customer) {
-        log.debug("customer={}", customer);
-        return repository.save(customer);
-    }
+	@Bean
+	public SqlSessionFactory sqlSessionFactory() throws Exception {
+		SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
+		sessionFactory.setDataSource(mainDataSource());
+		return sessionFactory.getObject();
+	}
 
-    @GetMapping("/r2/customers/{id}")
-    public Mono<Customer> r2GetCustomer(@PathVariable Long id) {
-        return repository.findById(id);
-    }
+	@GetMapping("/mb/customers")
+	public List<Customer> mbGetCustomers() {
+		return mybatisMapper.getList();
+	}
 
-    @PutMapping("/r2/customers")
-    public Mono<Customer> r2UpdateCustomer(@RequestBody Customer customer) {
-        return repository.save(customer);
-    }
+	@PostMapping("/r2/customers")
+	public Mono<Customer> r2CreateCustomer(@RequestBody Customer customer) {
+		log.debug("customer={}", customer);
+		return repository.save(customer);
+	}
 
-    @DeleteMapping("/r2/customers")
-    public Mono<Void> r2DeleteCustomer(@RequestBody Customer customer) {
-        return repository.delete(customer);
-    }
+	@GetMapping("/r2/customers/{id}")
+	public Mono<Customer> r2GetCustomer(@PathVariable Long id) {
+		return repository.findById(id);
+	}
 
-    @GetMapping("/r2/customers")
-    public Flux<Customer> r2GetCustomers() {
-        return repository.findAll();
-    }    
+	@PutMapping("/r2/customers")
+	public Mono<Customer> r2UpdateCustomer(@RequestBody Customer customer) {
+		return repository.save(customer);
+	}
 
-    @Bean //구동시 데이터를 넣으려면 주석 해제
-    public CommandLineRunner demo(CustomerRepository repository) {
+	@DeleteMapping("/r2/customers")
+	public Mono<Void> r2DeleteCustomer(@RequestBody Customer customer) {
+		return repository.delete(customer);
+	}
 
-        return (args) -> {
-            // save a few customers
-            repository.saveAll(Arrays.asList(new Customer("Jack", "Bauer"),
-                new Customer("Chloe", "O'Brian"),
-                new Customer("Kim", "Bauer"),
-                new Customer("David", "Palmer"),
-                new Customer("Michelle", "Dessler")))
-                .blockLast(Duration.ofSeconds(10));
+	@GetMapping("/r2/customers")
+	public Flux<Customer> r2GetCustomers() {
+		return Flux.defer(() -> repository.findAll())
+			.publishOn(Schedulers.parallel())
+			.subscribeOn(Schedulers.boundedElastic());
+	}
 
-            // fetch all customers
-            log.info("Customers found with findAll():");
-            log.info("-------------------------------");
-            repository.findAll().doOnNext(customer -> {
-                log.info(customer.toString());
-            }).blockLast(Duration.ofSeconds(10));
+	@Bean //구동시 데이터를 넣으려면 주석 해제
+	public CommandLineRunner demo(CustomerRepository repository) {
 
-            log.info("");
+		return (args) -> {
+			// save a few customers
+			repository.saveAll(Arrays.asList(new Customer("Jack", "Bauer"),
+				new Customer("Chloe", "O'Brian"),
+				new Customer("Kim", "Bauer"),
+				new Customer("David", "Palmer"),
+				new Customer("Michelle", "Dessler")))
+				.blockLast(Duration.ofSeconds(10));
 
-            // fetch an individual customer by ID
+			// fetch all customers
+			log.info("Customers found with findAll():");
+			log.info("-------------------------------");
+			repository.findAll().doOnNext(customer -> {
+				log.info(customer.toString());
+			}).blockLast(Duration.ofSeconds(10));
+
+			log.info("");
+
+			// fetch an individual customer by ID
 			repository.findById(1L).doOnNext(customer -> {
 				log.info("Customer found with findById(1L):");
 				log.info("--------------------------------");
@@ -136,15 +139,15 @@ public class AccessingDataR2dbcApplication {
 				log.info("");
 			}).block(Duration.ofSeconds(10));
 
-
-            // fetch customers by last name
-            log.info("Customer found with findByLastName('Bauer'):");
-            log.info("--------------------------------------------");
-            repository.findByLastName("Bauer").doOnNext(bauer -> {
-                log.info(bauer.toString());
-            }).blockLast(Duration.ofSeconds(10));;
-            log.info("");
-        };
-    }
+			// fetch customers by last name
+			log.info("Customer found with findByLastName('Bauer'):");
+			log.info("--------------------------------------------");
+			repository.findByLastName("Bauer").doOnNext(bauer -> {
+				log.info(bauer.toString());
+			}).blockLast(Duration.ofSeconds(10));
+			;
+			log.info("");
+		};
+	}
 
 }
