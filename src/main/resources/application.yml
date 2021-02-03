@@ -7,6 +7,9 @@ spring:
     jdbcUrl: ${spring.datasource.url}
     username: sa
     password:
+  hikari:
+    minimum-idle: 5
+    maximum-pool-size: 30
   h2:
     console:
       enabled: true
@@ -15,4 +18,4 @@ logging:
   level: 
     jdbc.sqlonly: OFF
     org.springframework.web: OFF
-    com.zaxxer.hikari.HikariDataSource: OFF
+    com.zaxxer.hikari: TRACE
